@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np 
+import numpy as np
 import os
 
 # Set page layout & configuration
@@ -115,10 +115,6 @@ def process_dataframe(df):
     
     return df, subject_cols
 
-
-# ==========================================
-# SIDEBAR CONTROLS & FILE UPLOADER
-# ==========================================
 st.sidebar.image("https://img.icons8.com/isometric-folders/100/graduation-cap.png", width=70)
 st.sidebar.title("Dashboard Options")
 
@@ -152,42 +148,31 @@ st.sidebar.download_button(
 )
 
 st.sidebar.markdown("---")
-
 # Process dataframe
 df, subject_cols = process_dataframe(raw_df)
+st.sidebar.subheader("Filters")
+classes = ["All"] + list(df["Class"].unique()) if "Class" in df.columns else ["All"]
+semesters = ["All"] + list(df["Semester"].unique()) if "Semester" in df.columns else ["All"]
 
-# Dynamic Filters in Sidebar
-st.sidebar.subheader("🔍 Data Filters")
+selected_class = st.sidebar.selectbox("Class", classes)
+selected_semester = st.sidebar.selectbox("Semester", semesters)
+search = st.sidebar.text_input("Search Name or ID", "")
 
-# Filter by Class
-all_classes = ["All"] + sorted(df["Class"].astype(str).unique().tolist()) if "Class" in df.columns else ["All"]
-selected_class = st.sidebar.selectbox("Select Class/Grade", all_classes)
-
-# Filter by Semester
-all_semesters = ["All"] + sorted(df["Semester"].astype(str).unique().tolist()) if "Semester" in df.columns else ["All"]
-selected_semester = st.sidebar.selectbox("Select Semester", all_semesters)
-
-# Filter by Search Name
-search_query = st.sidebar.text_input("Search Student Name or ID", "")
-
-# Apply Filters
 filtered_df = df.copy()
 
-if selected_class != "All" and "Class" in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df["Class"].astype(str) == selected_class]
+if selected_class != "All" and "Class" in filtered_df:
+    filtered_df = filtered_df[filtered_df["Class"] == selected_class]
 
-if selected_semester != "All" and "Semester" in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df["Semester"].astype(str) == selected_semester]
+if selected_semester != "All" and "Semester" in filtered_df:
+    filtered_df = filtered_df[filtered_df["Semester"] == selected_semester]
 
-if search_query.strip():
-    name_match = filtered_df["Name"].astype(str).str.contains(search_query, case=False, na=False) if "Name" in filtered_df.columns else False
-    id_match = filtered_df["Student_ID"].astype(str).str.contains(search_query, case=False, na=False) if "Student_ID" in filtered_df.columns else False
-    filtered_df = filtered_df[name_match | id_match]
+if search:
+    mask = (
+        filtered_df["Name"].astype(str).str.contains(search, case=False, na=False) |
+        filtered_df["Student_ID"].astype(str).str.contains(search, case=False, na=False)
+    )
+    filtered_df = filtered_df[mask]
 
-
-# ==========================================
-# MAIN DASHBOARD CONTENT
-# ==========================================
 st.markdown('<div class="main-header">🎓 Student Marks Analysis Dashboard</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Interactive analytics, academic performance metrics, and subject trend visualizations</div>', unsafe_allow_html=True)
 
@@ -195,9 +180,7 @@ if filtered_df.empty:
     st.warning("⚠️ No student records match the selected filter criteria. Please adjust sidebar filters.")
     st.stop()
 
-# ------------------------------------------
-# SECTION 1: KEY PERFORMANCE METRICS
-# ------------------------------------------
+
 col1, col2, col3, col4 = st.columns(4)
 
 total_students = filtered_df["Student_ID"].nunique() if "Student_ID" in filtered_df.columns else len(filtered_df)
@@ -215,9 +198,7 @@ col4.metric("Top Performer", f"{top_scorer}", f"{top_score:.1f}%")
 
 st.markdown("---")
 
-# ------------------------------------------
-# SECTION 2: INTERACTIVE DATA TABLE (st.dataframe)
-# ------------------------------------------
+
 st.subheader("📋 Student Marks Data Table")
 st.caption("Interactive data table supported by Streamlit `st.dataframe()`. Sort, search, or view detailed marks.")
 
@@ -265,9 +246,7 @@ with export_col:
 
 st.markdown("---")
 
-# ------------------------------------------
-# SECTION 3: PERFORMANCE TREND LINE CHARTS (st.line_chart)
-# ------------------------------------------
+
 st.subheader("📈 Subject Performance & Mark Trends")
 st.caption("Visualizing performance trends using Streamlit `st.line_chart()`.")
 
@@ -277,7 +256,7 @@ chart_tab1, chart_tab2, chart_tab3 = st.tabs([
     "📅 Semester Progress Trend"
 ])
 
-# Feature 3: st.line_chart() - Tab 1: Subject Averages
+# Feature 3: st.line_chart() 
 with chart_tab1:
     st.write("##### Subject-wise Mean Score Across Students")
     if subject_cols:
@@ -297,7 +276,7 @@ with chart_tab1:
     else:
         st.warning("No subject columns detected for line chart visualization.")
 
-# Feature 3: st.line_chart() - Tab 2: Individual Student Marks Comparison
+# Feature 3: st.line_chart() 
 with chart_tab2:
     st.write("##### Compare Subject Marks for Selected Students")
     if "Name" in filtered_df.columns:
@@ -329,7 +308,7 @@ with chart_tab2:
         else:
             st.warning("Please select at least one student from the dropdown above to display the line chart.")
 
-# Feature 3: st.line_chart() - Tab 3: Semester Progress Trend
+# Feature 3: st.line_chart() 
 with chart_tab3:
     st.write("##### Semester-over-Semester Academic Progression")
     if "Semester" in df.columns and "Name" in df.columns:
@@ -355,9 +334,7 @@ with chart_tab3:
 
 st.markdown("---")
 
-# ------------------------------------------
-# SECTION 4: STATISTICAL SUMMARY & GRADE DISTRIBUTION
-# ------------------------------------------
+
 col_stat1, col_stat2 = st.columns(2)
 
 with col_stat1:
