@@ -118,13 +118,7 @@ def process_dataframe(df):
 st.sidebar.image("https://img.icons8.com/isometric-folders/100/graduation-cap.png", width=70)
 st.sidebar.title("Dashboard Options")
 
-st.sidebar.subheader("📁 Data Input Source")
-# Feature 1: st.file_uploader()
-uploaded_file = st.sidebar.file_uploader(
-    "Upload Student Marks CSV",
-    type=["csv"],
-    help="Upload a CSV file containing student marks to analyze custom data."
-)
+uploaded_file = st.sidebar.file_uploader("Upload Student Marks CSV", type=["csv"])
 
 if uploaded_file is not None:
     try:
@@ -137,49 +131,23 @@ else:
     raw_df = load_default_data()
     st.sidebar.info("Using Sample Student Marks Dataset")
 
-# Download sample template button
 sample_df = load_default_data()
 st.sidebar.download_button(
     label="📥 Download Sample CSV Template",
     data=sample_df.to_csv(index=False).encode('utf-8'),
     file_name="sample_student_marks_template.csv",
-    mime="text/csv",
-    help="Download this sample CSV to test uploading your own format."
+    mime="text/csv"
 )
 
-st.sidebar.markdown("---")
-# Process dataframe
 df, subject_cols = process_dataframe(raw_df)
-st.sidebar.subheader("Filters")
-classes = ["All"] + list(df["Class"].unique()) if "Class" in df.columns else ["All"]
-semesters = ["All"] + list(df["Semester"].unique()) if "Semester" in df.columns else ["All"]
-
-selected_class = st.sidebar.selectbox("Class", classes)
-selected_semester = st.sidebar.selectbox("Semester", semesters)
-search = st.sidebar.text_input("Search Name or ID", "")
-
-filtered_df = df.copy()
-
-if selected_class != "All" and "Class" in filtered_df:
-    filtered_df = filtered_df[filtered_df["Class"] == selected_class]
-
-if selected_semester != "All" and "Semester" in filtered_df:
-    filtered_df = filtered_df[filtered_df["Semester"] == selected_semester]
-
-if search:
-    mask = (
-        filtered_df["Name"].astype(str).str.contains(search, case=False, na=False) |
-        filtered_df["Student_ID"].astype(str).str.contains(search, case=False, na=False)
-    )
-    filtered_df = filtered_df[mask]
+filtered_df = df
 
 st.markdown('<div class="main-header">🎓 Student Marks Analysis Dashboard</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Interactive analytics, academic performance metrics, and subject trend visualizations</div>', unsafe_allow_html=True)
 
 if filtered_df.empty:
-    st.warning("⚠️ No student records match the selected filter criteria. Please adjust sidebar filters.")
+    st.warning("⚠️ No student records found.")
     st.stop()
-
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -191,18 +159,15 @@ top_student_row = filtered_df.loc[filtered_df["Percentage"].idxmax()] if not fil
 top_scorer = top_student_row["Name"] if top_student_row is not None and "Name" in top_student_row else "N/A"
 top_score = top_student_row["Percentage"] if top_student_row is not None else 0
 
-col1.metric("Total Students", f"{total_students}", help="Unique students in current filter view")
+col1.metric("Total Students", f"{total_students}")
 col2.metric("Overall Class Avg", f"{avg_percentage:.2f}%", delta=f"{avg_percentage - 75.0:.1f}% vs Target (75%)")
 col3.metric("Pass Rate", f"{pass_rate:.1f}%", delta=f"{pass_rate - 90.0:.1f}% vs Goal (90%)")
 col4.metric("Top Performer", f"{top_scorer}", f"{top_score:.1f}%")
 
 st.markdown("---")
 
-
 st.subheader("📋 Student Marks Data Table")
-st.caption("Interactive data table supported by Streamlit `st.dataframe()`. Sort, search, or view detailed marks.")
 
-# Display option toggle
 table_view_col, export_col = st.columns([3, 1])
 with table_view_col:
     show_subjects_only = st.checkbox("Hide metadata columns (show only Subject Marks & Totals)", value=False)
@@ -213,18 +178,11 @@ if show_subjects_only:
 else:
     data_to_show = filtered_df
 
-# Feature 2: st.dataframe()
 st.dataframe(
     data_to_show,
     use_container_width=True,
     column_config={
-        "Percentage": st.column_config.ProgressColumn(
-            "Overall %",
-            help="Student total percentage score",
-            format="%.2f%%",
-            min_value=0,
-            max_value=100,
-        ),
+        "Percentage": st.column_config.ProgressColumn("Overall %", format="%.2f%%", min_value=0, max_value=100),
         "Total_Marks": st.column_config.NumberColumn("Total Marks", format="%d"),
         "Grade": st.column_config.TextColumn("Grade Badge"),
         "Status": st.column_config.TextColumn("Pass Status")
@@ -233,7 +191,6 @@ st.dataframe(
     height=320
 )
 
-# Download processed CSV button
 with export_col:
     csv_bytes = filtered_df.to_csv(index=False).encode('utf-8')
     st.download_button(
@@ -246,94 +203,14 @@ with export_col:
 
 st.markdown("---")
 
-
 st.subheader("📈 Subject Performance & Mark Trends")
-st.caption("Visualizing performance trends using Streamlit `st.line_chart()`.")
-
-chart_tab1, chart_tab2, chart_tab3 = st.tabs([
-    "📊 Subject Average Trends", 
-    "👨‍🎓 Student Marks Comparison", 
-    "📅 Semester Progress Trend"
-])
-
-# Feature 3: st.line_chart() 
-with chart_tab1:
-    st.write("##### Subject-wise Mean Score Across Students")
-    if subject_cols:
-        subject_means = filtered_df[subject_cols].mean().to_frame(name="Average Score")
-        
-        # Display st.line_chart for subject averages
-        st.line_chart(
-            subject_means,
-            use_container_width=True,
-            color="#2563EB"
-        )
-        
-        # Summary description
-        highest_sub = subject_means["Average Score"].idxmax()
-        lowest_sub = subject_means["Average Score"].idxmin()
-        st.info(f"💡 **Insight**: Students performed highest in **{highest_sub}** ({subject_means.loc[highest_sub, 'Average Score']:.1f} avg) and need support in **{lowest_sub}** ({subject_means.loc[lowest_sub, 'Average Score']:.1f} avg).")
-    else:
-        st.warning("No subject columns detected for line chart visualization.")
-
-# Feature 3: st.line_chart() 
-with chart_tab2:
-    st.write("##### Compare Subject Marks for Selected Students")
-    if "Name" in filtered_df.columns:
-        available_students = filtered_df["Name"].unique().tolist()
-        default_selected = available_students[:5] if len(available_students) >= 5 else available_students
-        
-        selected_students = st.multiselect(
-            "Select Students to Compare:",
-            options=available_students,
-            default=default_selected
-        )
-        
-        if selected_students:
-            student_df = filtered_df[filtered_df["Name"].isin(selected_students)]
-            # Pivot data so Subjects are index and Students are columns for line_chart
-            pivot_df = student_df.melt(
-                id_vars=["Name"], 
-                value_vars=subject_cols, 
-                var_name="Subject", 
-                value_name="Marks"
-            )
-            pivot_chart_data = pivot_df.pivot_table(index="Subject", columns="Name", values="Marks", aggfunc='mean')
-            
-            # Display st.line_chart for multi-student comparison
-            st.line_chart(
-                pivot_chart_data,
-                use_container_width=True
-            )
-        else:
-            st.warning("Please select at least one student from the dropdown above to display the line chart.")
-
-# Feature 3: st.line_chart() 
-with chart_tab3:
-    st.write("##### Semester-over-Semester Academic Progression")
-    if "Semester" in df.columns and "Name" in df.columns:
-        sem_student = st.selectbox(
-            "Select Student for Progression Line Chart:",
-            options=df["Name"].unique().tolist()
-        )
-        
-        sem_df = df[df["Name"] == sem_student].sort_values("Semester")
-        
-        if not sem_df.empty:
-            sem_chart_data = sem_df.set_index("Semester")[subject_cols]
-            
-            # Display st.line_chart for student semester trend
-            st.line_chart(
-                sem_chart_data,
-                use_container_width=True
-            )
-        else:
-            st.info("No semester progression data available for selected student.")
-    else:
-        st.info("Semester or Student Name columns not present in dataset.")
+if subject_cols:
+    subject_means = filtered_df[subject_cols].mean().to_frame(name="Average Score")
+    st.line_chart(subject_means, use_container_width=True, color="#2563EB")
+else:
+    st.warning("No subject columns detected for line chart visualization.")
 
 st.markdown("---")
-
 
 col_stat1, col_stat2 = st.columns(2)
 
@@ -348,16 +225,13 @@ with col_stat2:
     st.subheader("🏆 Grade Distribution Summary")
     grade_counts = filtered_df["Grade"].value_counts().reset_index()
     grade_counts.columns = ["Grade", "Student Count"]
-    
-    # Display grade distribution
     st.dataframe(grade_counts, use_container_width=True, hide_index=True)
 
-# Footer
 st.markdown("---")
 st.markdown(
     """
     <div style="text-align: center; color: #94A3B8; font-size: 0.85rem;">
-        Student Marks Analysis Dashboard • Built with Streamlit, Pandas & Python • Hosted on GitHub
+        Student Marks Analysis Dashboard • Built with Streamlit, Pandas & Python
     </div>
     """,
     unsafe_allow_html=True
