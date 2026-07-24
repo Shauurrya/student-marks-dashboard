@@ -112,7 +112,7 @@ git push -u origin main
 Presentation/
 ├── app.py                     # Main Streamlit dashboard script
 ├── sample_student_marks.csv   # Pre-loaded sample dataset
-├── requirements.txt           # Python dependencies
+├── requirements.txt           # Python dependencies 
 ├── README.md                  # Project documentation & GitHub guide
 └── .gitignore                 # Git ignore configuration
 ```
